@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="auth-container">
+
+    <div class="auth-card">
+        <div class="text-center mb-6 logo justify-center">
+            <a href="/"><i class="fa-solid fa-shield-halved"></i> TenderGuard</a>
+        </div>
+        <h2 class="text-center mb-6">Create Account</h2>
+
+        <div id="error-alert" class="alert alert-error hidden"></div>
+
+        <form id="register-form">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="name" class="form-control" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-control" required placeholder="john@example.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select id="role" class="form-control" required>
+                    <option value="contractor">Contractor</option>
+                    <option value="public">Public Citizen</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="password" class="form-control" required placeholder="Min 6 chars">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Sign Up</button>
+        </form>
+
+        <p class="text-center mt-6 text-muted">
+            Already have an account? <a href="/login.html">Log In</a>
+        </p>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            const alertBox = document.getElementById('error-alert');
+
+            try {
+                const res = await api.register({ name, email, password, role });
+                if (res.success) {
+                    localStorage.setItem('token', res.token);
+                    localStorage.setItem('user', JSON.stringify(res.user));
+
+                    if (res.user.role === 'contractor') {
+                        window.location.href = '/contractor/dashboard.html';
+                    } else {
+                        window.location.href = '/public/portal.html';
+                    }
+                } else {
+                    alertBox.textContent = res.error || 'Registration failed';
+                    alertBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                alertBox.textContent = 'Server error';
+                alertBox.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

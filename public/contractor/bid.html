@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Bid - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Contractor</span>
+            </a>
+            <div class="nav-links">
+                <a href="/contractor/tenders.html">Back to Tenders</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-12" style="max-width: 800px;">
+        <h2 class="mb-6">Submit Bid Application</h2>
+
+        <div class="card mb-8" style="background-color: var(--secondary-bg); border-left: 4px solid var(--accent);">
+            <h3 id="tender-title" style="color: var(--text-primary);">Loading Tender...</h3>
+            <p class="text-sm text-muted mt-2" id="tender-desc"></p>
+            <div class="flex gap-6 mt-4 text-sm font-medium">
+                <div>Budget: <span id="tender-budget" class="text-primary"></span></div>
+                <div>Deadline: <span id="tender-deadline" class="text-alert-red"></span></div>
+            </div>
+        </div>
+
+        <div id="error-alert" class="alert alert-error hidden"></div>
+        <div id="success-alert" class="alert hidden"
+            style="color: var(--alert-green); background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-left: 4px solid var(--alert-green);"></div>
+
+        <form id="bid-form" class="card">
+            <h3 class="mb-4">Financial & Timeline Details</h3>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Quoted Price (₹)</label>
+                    <input type="number" id="quotedPrice" class="form-control" required
+                        placeholder="Enter exact amount">
+                    <p class="text-sm text-muted mt-1">Note: Extreme deviations from budget or average are flagged by
+                        AI.</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estimated Timeline (Days)</label>
+                    <input type="number" id="timelineDays" class="form-control" required placeholder="e.g. 180">
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <label class="form-label">Relevant Experience Details</label>
+                <textarea id="experienceDetails" class="form-control" rows="4" required
+                    placeholder="Describe previous similar projects completed..."></textarea>
+            </div>
+
+            <h3 class="mb-4 mt-8">Document Verification</h3>
+            <div class="alert mb-4" style="background-color: rgba(59, 130, 246, 0.1); color: #60a5fa; border-left: 4px solid #3b82f6;">
+                <i class="fa-solid fa-circle-info mr-2"></i><strong>AI Integrity Check Active:</strong> All uploaded
+                documents are automatically analyzed for metadata anomalies, tampering, and duplication.
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Required Documents (PDF, max 5MB each)</label>
+                <p class="text-sm text-muted mb-2">Please upload copies of GST cert, PAN, and Past Experience proof.</p>
+                <input type="file" id="documents" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+
+            <div class="form-group mt-6">
+                <label style="display: flex; align-items: flex-start; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" required style="margin-top: 0.25rem;">
+                    <span class="text-sm text-muted">I certify that all information and documents provided are genuine.
+                        I understand that submitting fraudulent documentation or colluding with other bidders will
+                        result in permanent platform ban and legal action.</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-6 w-full"
+                style="width: 100%; font-size: 1.1rem; padding: 1rem;">
+                <i class="fa-solid fa-lock mr-2"></i> Submit Encrypted Bid
+            </button>
+        </form>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        checkAuth('contractor');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tenderId = urlParams.get('id');
+
+        if (!tenderId) {
+            window.location.href = '/contractor/tenders.html';
+        }
+
+        // Load tender details
+        api.getTender(tenderId).then(res => {
+            if (res.success) {
+                document.getElementById('tender-title').textContent = res.data.title;
+                document.getElementById('tender-desc').textContent = res.data.description;
+                document.getElementById('tender-budget').textContent = '₹' + res.data.budget.toLocaleString();
+                document.getElementById('tender-deadline').textContent = new Date(res.data.deadline).toLocaleDateString();
+            }
+        });
+
+        // Submit form
+        document.getElementById('bid-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Analyzing & Submitting...';
+
+            const formData = new FormData();
+            formData.append('quotedPrice', document.getElementById('quotedPrice').value);
+            formData.append('timelineDays', document.getElementById('timelineDays').value);
+            formData.append('experienceDetails', document.getElementById('experienceDetails').value);
+
+            const files = document.getElementById('documents').files;
+            for (let i = 0; i < files.length; i++) {
+                formData.append('documents', files[i]);
+            }
+
+            try {
+                const res = await api.submitBid(tenderId, formData);
+
+                if (res.success) {
+                    document.getElementById('bid-form').classList.add('hidden');
+                    const succAlert = document.getElementById('success-alert');
+                    succAlert.innerHTML = `
+                        <h3 class="mb-2" style="color: var(--text-primary);"><i class="fa-solid fa-circle-check"></i> Bid Submitted Successfully!</h3>
+                        <p style="color: var(--text-secondary);">Your AI Risk Score analysis is complete. You can view your current ranking and risk status in the My Bids section.</p>
+                        <a href="/contractor/my-bids.html" class="btn btn-outline mt-4">View My Bids</a>
+                    `;
+                    succAlert.classList.remove('hidden');
+                } else {
+                    document.getElementById('error-alert').textContent = res.error || 'Failed to submit bid.';
+                    document.getElementById('error-alert').classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-lock mr-2"></i> Submit Encrypted Bid';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('error-alert').textContent = 'Error connecting to server. Please try again.';
+                document.getElementById('error-alert').classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-lock mr-2"></i> Submit Encrypted Bid';
+            }
+        });
+    </script>
+</body>
+
+</html>

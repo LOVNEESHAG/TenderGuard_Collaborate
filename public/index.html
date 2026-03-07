@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenderGuard AI | Transparent Infrastructure Tendering</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        .div-top{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            width : 90vw;
+            height : 80vh;
+            margin-top : 10px;
+            margin-left: 5vw;
+            margin-right: 5vw;
+            background-image: url("https://images.unsplash.com/photo-1633363961301-4f100a78e92d?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: brightness(0.8);
+            border-radius: 20px;
+        }
+        .div-top i {
+            font-size: 5rem;
+        }
+        .div-top h2{
+            color : white;
+            text-shadow : 2px 2px 2px black;
+            font-size: 2rem;
+        }
+        .div-top p{
+            color : white;
+            text-shadow : 2px 2px 2px black;
+            font-size: 1.2rem;
+        }
+        .div-top a{
+            font-size: 1.2rem;
+            color : white;
+            text-shadow : 2px 2px 2px black;
+            padding : 0.8rem 1.5rem;
+            font-size : 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>TenderGuard</span>
+            </a>
+            <div class="nav-links" id="guest-nav">
+                <a href="#features">Features</a>
+                <a href="/public/portal.html">Public Portal</a>
+                <a href="/login.html" class="btn btn-outline" style="padding: 0.4rem 1rem;">Log In</a>
+                <a href="/register.html" class="btn btn-primary" style="padding: 0.4rem 1rem;">Sign Up</a>
+            </div>
+            <div class="nav-links hidden" id="auth-nav">
+                <a href="#" id="dashboard-link">Dashboard</a>
+                <button id="logout-btn" class="btn btn-outline" style="padding: 0.4rem 1rem;">Log Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="div-top">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h2>TenderGuard AI : Transparent Infrastructure Tendering</h2>
+            <p>Lowest justified and lowest risk wins — not just lowest price. A revolutionary platform preventing cartels and fake documentation.</p>
+            <div class="flex justify-center gap-4 mt-9 ">
+                <a href="/register.html" class="btn btn-primary">Get Started <i class="fa-solid fa-arrow-right ml-2" style="margin-left: 0.5rem; font-size: 0.8rem;"></i></a>
+                <a href="/public/portal.html" class="btn btn-primary">View Public Portal</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-12" id="features">
+        <h2 class="text-center mb-8" style="font-size: 2rem;">Why TenderGuard?</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="card text-center animate-fade-in" style="animation-delay: 0.1s;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; border-radius: 50%; background: rgba(37, 99, 235, 0.1); margin-bottom: 1.5rem; border: 1px solid rgba(37, 99, 235, 0.2);">
+                    <i class="fa-solid fa-robot fa-xl" style="color: var(--primary);"></i>
+                </div>
+                <h3 class="mb-2">AI Risk Scoring</h3>
+                <p class="text-muted" style="font-size: 0.875rem;">Simulated evaluation of bids based on price deviation, historical delays, and budget mismatches.</p>
+            </div>
+            <div class="card text-center animate-fade-in" style="animation-delay: 0.2s;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; border-radius: 50%; background: rgba(245, 158, 11, 0.05); margin-bottom: 1.5rem; border: 1px solid rgba(245, 158, 11, 0.2);">
+                    <i class="fa-solid fa-users-slash fa-xl" style="color: var(--alert-amber);"></i>
+                </div>
+                <h3 class="mb-2">Cartel Detection</h3>
+                <p class="text-muted" style="font-size: 0.875rem;">Automatically flag suspiciously similar bids and coordinated submission timings to prevent price fixing.</p>
+            </div>
+            <div class="card text-center animate-fade-in" style="animation-delay: 0.3s;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; border-radius: 50%; background: rgba(37, 99, 235, 0.1); margin-bottom: 1.5rem; border: 1px solid rgba(37, 99, 235, 0.2);">
+                    <i class="fa-solid fa-file-shield fa-xl" style="color: var(--primary);"></i>
+                </div>
+                <h3 class="mb-2">Document Verification</h3>
+                <p class="text-muted" style="font-size: 0.875rem;">Detect fake or reused documents with simulated filename and metadata anomaly detection.</p>
+            </div>
+        </div>
+
+        <div class="mt-12 text-center">
+            <h2 class="mb-8" style="font-size: 2rem;">How it works</h2>
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="card" style="padding-top: 2rem; padding-bottom: 2rem; position: relative;">
+                    <div style="position: absolute; top: 1rem; right: 1rem; color: #e2e8f0; font-size: 2rem; font-weight: 800;">01</div>
+                    <div class="badge badge-low mb-4">Post</div>
+                    <h4>Admin Posts Tender</h4>
+                    <p class="text-muted mt-2" style="font-size: 0.875rem;">Detailed requirements and budgets set up transparently.</p>
+                </div>
+                <div class="card" style="padding-top: 2rem; padding-bottom: 2rem; position: relative;">
+                    <div style="position: absolute; top: 1rem; right: 1rem; color: #e2e8f0; font-size: 2rem; font-weight: 800;">02</div>
+                    <div class="badge badge-low mb-4">Bid</div>
+                    <h4>Contractors Bid</h4>
+                    <p class="text-muted mt-2" style="font-size: 0.875rem;">Registered contractors submit automated, secure proposals.</p>
+                </div>
+                <div class="card" style="padding-top: 2rem; padding-bottom: 2rem; position: relative; border-color: rgba(245,158,11,0.3);">
+                    <div style="position: absolute; top: 1rem; right: 1rem; color: #e2e8f0; font-size: 2rem; font-weight: 800;">03</div>
+                    <div class="badge badge-medium mb-4">Analyze</div>
+                    <h4>AI Analysis</h4>
+                    <p class="text-muted mt-2" style="font-size: 0.875rem;">Algorithms scan for risks, cartel behavior, and document fraud.</p>
+                </div>
+                <div class="card" style="padding-top: 2rem; padding-bottom: 2rem; position: relative;">
+                    <div style="position: absolute; top: 1rem; right: 1rem; color: #e2e8f0; font-size: 2rem; font-weight: 800;">04</div>
+                    <div class="badge badge-low mb-4">Award</div>
+                    <h4>Ranked Awarding</h4>
+                    <p class="text-muted mt-2" style="font-size: 0.875rem;">Lowest justified and lowest risk bid wins the contract.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="border-top: 1px solid var(--border); background-color: var(--primary-bg); color: var(--text-secondary); padding: 4rem 0 2rem; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <div class="logo justify-center mb-6" style="color: var(--text-primary); font-size: 1.5rem;">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard AI
+            </div>
+            <div class="flex justify-center gap-6 mb-8 text-sm">
+                <a href="#features" class="text-muted">Features</a>
+                <a href="/public/portal.html" class="text-muted">Public Portal</a>
+                <a href="/login.html" class="text-muted">Log In</a>
+            </div>
+            <div style="height: 1px; width: 100%; max-width: 400px; margin: 0 auto; background: var(--border); margin-bottom: 2rem;"></div>
+            <p style="font-size: 0.875rem;">&copy; 2026 TenderGuard AI. Building a transparent future.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+            if (token && userStr) {
+                const user = JSON.parse(userStr);
+                document.getElementById('guest-nav').classList.add('hidden');
+                document.getElementById('auth-nav').classList.remove('hidden');
+                
+                const dashLink = document.getElementById('dashboard-link');
+                if (user.role === 'admin') {
+                    dashLink.href = '/admin/dashboard.html';
+                } else if (user.role === 'contractor') {
+                    dashLink.href = '/contractor/dashboard.html';
+                } else {
+                    dashLink.href = '/public/portal.html';
+                }
+            }
+
+            document.getElementById('logout-btn')?.addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            });
+        });
+    </script>
+</body>
+</html>

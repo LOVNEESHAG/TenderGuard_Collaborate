@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Analysis Framework - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Admin</span>
+            </a>
+            <div class="nav-links">
+                <a href="/admin/dashboard.html">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            <a href="/admin/dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="/admin/tenders.html"><i class="fa-solid fa-file-contract"></i> Manage Tenders</a>
+            <a href="/admin/risk-analysis.html" class="active"><i class="fa-solid fa-triangle-exclamation"></i> Risk
+                Analysis</a>
+            <div class="sidebar-title mt-4">Public</div>
+            <a href="/public/complaints.html"><i class="fa-solid fa-bullhorn"></i> Public Complaints</a>
+            <a href="/public/portal.html" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Live Portal</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2>AI Risk & Ranking Engine</h2>
+            </div>
+
+            <div class="card mb-6" style="background: var(--secondary-bg);">
+                <div class="form-group mb-0 flex items-center gap-4">
+                    <label class="form-label mb-0" style="white-space: nowrap; color: var(--text-primary);">Select Tender to Analyze:</label>
+                    <select id="tender-select" class="form-control" style="max-width: 400px;"></select>
+                </div>
+            </div>
+
+            <div id="results-area" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3>Ranked Contractor Bids</h3>
+                    <span class="text-sm text-muted">Ranked by Lowest Price + Lowest Risk + Highest Capability</span>
+                </div>
+
+                <div id="bids-list" class="flex-col gap-6">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Justification (mock) -->
+    <div id="override-modal" class="hidden"
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+            <h3 class="mb-4 text-alert-amber">Override AI Recommendation</h3>
+            <p class="mb-4 text-sm text-muted">You are attempting to award the tender to a contractor who is not ranked
+                #1. This requires mandatory transparent justification that will be logged in the public audit trail.</p>
+            <div class="form-group">
+                <label class="form-label">Justification Reason</label>
+                <textarea class="form-control" rows="4"
+                    placeholder="Explain why the highest ranked bidder was skipped..."></textarea>
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button type="button" class="btn btn-primary" onclick="closeModal()">Submit Overallude</button>
+                <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        checkAuth('admin');
+
+        // Check if tenderId passed in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedTenderId = urlParams.get('tenderId');
+
+        async function init() {
+            try {
+                const res = await api.getTenders();
+                if (res.success) {
+                    const select = document.getElementById('tender-select');
+                    select.innerHTML = '<option value="">-- Choose a Tender --</option>';
+                    res.data.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t._id;
+                        opt.textContent = `${t.title} (Budget: ₹${t.budget})`;
+                        if (preselectedTenderId === t._id) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+
+                    if (preselectedTenderId) {
+                        loadBids(preselectedTenderId);
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        document.getElementById('tender-select').addEventListener('change', (e) => {
+            if (e.target.value) {
+                loadBids(e.target.value);
+            } else {
+                document.getElementById('results-area').classList.add('hidden');
+            }
+        });
+
+        async function loadBids(tenderId) {
+            try {
+                const res = await api.getBids(tenderId);
+                if (res.success) {
+                    document.getElementById('results-area').classList.remove('hidden');
+                    const list = document.getElementById('bids-list');
+                    list.innerHTML = '';
+
+                    if (res.data.length === 0) {
+                        list.innerHTML = '<p class="text-muted">No bids received yet.</p>';
+                        return;
+                    }
+
+                        res.data.forEach((bid, index) => {
+                            let rankClass = index === 0 ? 'border: 1px solid var(--accent); background: rgba(255,255,255,0.05);' : 'border: 1px solid var(--border);';
+                            let rankBadge = index === 0 ? '<div style="background: var(--accent); color: var(--primary-bg); padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: bold; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;">#1 Recommended</div>' : `<div class="badge" style="background: var(--border); color: var(--text-secondary);">Rank #${index + 1}</div>`;
+
+                            let warningBadges = '';
+                            if (bid.cartelSuspicion) {
+                                warningBadges += '<span class="badge badge-high" style="margin-right: 0.5rem;"><i class="fa-solid fa-users-slash"></i> Cartel Suspected</span>';
+                            }
+                            if (bid.fakeDocFlags && bid.fakeDocFlags.length > 0) {
+                                warningBadges += '<span class="badge badge-high" style="margin-right: 0.5rem;"><i class="fa-solid fa-file-excel"></i> Doc Anomaly</span>';
+                            }
+                            if (bid.riskLevel === 'High') {
+                                warningBadges += '<span class="badge badge-high"><i class="fa-solid fa-triangle-exclamation"></i> High Risk Profile</span>';
+                            }
+
+                            let flagList = '';
+                            if (bid.flags && bid.flags.length > 0) {
+                                flagList = '<ul class="text-sm mt-3" style="color: var(--alert-red); padding-left: 1rem;">';
+                                bid.flags.forEach(f => {
+                                    flagList += `<li style="font-size: 0.875rem;">${f}</li>`;
+                                });
+                                flagList += '</ul>';
+                            }
+
+                            list.innerHTML += `
+                                <div class="card flex-col gap-4" style="${rankClass}">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-4">
+                                            <h3 style="margin: 0; font-size: 1.25rem;">${bid.contractor ? bid.contractor.name : 'Unknown'}</h3>
+                                            ${rankBadge}
+                                        </div>
+                                        <div class="text-right">
+                                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Final Score: ${bid.finalScore}</div>
+                                        </div>
+                                    </div>
+                                
+                                <div class="grid md:grid-cols-4 gap-4 py-3" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+                                    <div>
+                                        <div class="text-sm text-muted">Quoted Price</div>
+                                        <div class="font-medium">₹${bid.quotedPrice.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-muted">Risk Score</div>
+                                        <div class="font-medium">${bid.riskScore}/100</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-muted">Contractor XP</div>
+                                        <div class="font-medium">${bid.contractor ? bid.contractor.experience : 0} Yrs</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-muted">Past Delays</div>
+                                        <div class="font-medium">${bid.contractor ? bid.contractor.delayHistory : 0} Incidents</div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    ${warningBadges}
+                                    ${flagList}
+                                </div>
+
+                                    <div class="flex justify-end mt-4">
+                                        ${index === 0
+                                    ? `<button class="btn btn-primary" onclick="alert('Awarded! Audit trail updated.')">Award Tender</button>`
+                                    : `<button class="btn btn-danger" onclick="openOverrideModal()">Override AI & Award</button>`}
+                                    </div>
+                                </div>
+                        `;
+                    });
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function openOverrideModal() {
+            document.getElementById('override-modal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('override-modal').classList.add('hidden');
+        }
+
+        // Fix modal hiding class logic since our CSS uses display: none !important
+        // Add specific unhide rule
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #override-modal:not(.hidden) { display: flex !important; }
+        `;
+        document.head.appendChild(style);
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

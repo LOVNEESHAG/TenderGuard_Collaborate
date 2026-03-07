@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Complaint Portal - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="auth-container">
+    <nav class="navbar" style="background-color: rgba(10, 10, 10, 0.8);">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/public/portal.html" class="logo" style="color: var(--text-primary);">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Complaints</span>
+            </a>
+            <div class="nav-links">
+                <a href="/public/portal.html" style="color: var(--text-secondary);">Back to Map</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-12" style="max-width: 600px;">
+        <h2 class="mb-2 text-center">Report Infrastructure Issue</h2>
+        <p class="text-muted text-center mb-8">See a pothole, delayed construction, or substandard materials? Upload a
+            photo and tag the exact project.</p>
+
+        <div id="error-alert" class="alert alert-error hidden"></div>
+        <div id="success-alert" class="alert hidden"
+            style="color: var(--alert-green); background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-left: 4px solid var(--alert-green);">
+        </div>
+
+        <form id="complaint-form" class="auth-card" style="margin: 0 auto; max-width: 100%;">
+            <div class="form-group">
+                <label class="form-label">Related Project</label>
+                <select id="tender" class="form-control" required>
+                    <option value="">-- Select Project --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Issue Category</label>
+                <select id="category" class="form-control" required>
+                    <option value="">-- Select Category --</option>
+                    <option value="road damage">Road Damage</option>
+                    <option value="broken railing">Broken Railing</option>
+                    <option value="structural crack">Structural Crack</option>
+                    <option value="safety hazard">Safety Hazard</option>
+                    <option value="poor construction">Poor Construction</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Issue Description</label>
+                <textarea id="description" class="form-control" rows="4" required
+                    placeholder="Describe what you observed..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Geo-tagged Photo Proof</label>
+                <input type="file" id="photo" class="form-control" accept="image/*" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-4 w-full" style="width: 100%;">
+                <i class="fa-solid fa-paper-plane mr-2"></i> Submit Complaint
+            </button>
+        </form>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Check if citizen is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please login as a citizen to submit complaints.');
+            window.location.href = '/login.html';
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedTenderId = urlParams.get('tenderId');
+
+        // Load Tenders into dropdown
+        api.getTenders().then(res => {
+            if (res.success) {
+                const select = document.getElementById('tender');
+                res.data.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t._id;
+                    opt.textContent = t.title;
+                    if (preselectedTenderId === t._id) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+        });
+
+        document.getElementById('complaint-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('tender', document.getElementById('tender').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('photo', document.getElementById('photo').files[0]);
+
+            // Mock Location
+            formData.append('location.lat', '20.0');
+            formData.append('location.lng', '78.0');
+
+            try {
+                const res = await api.submitComplaint(formData);
+                if (res.success) {
+                    document.getElementById('complaint-form').classList.add('hidden');
+                    const succAlert = document.getElementById('success-alert');
+                    succAlert.innerHTML = `
+                        <h3 class="mb-2" style="color: var(--text-primary);"><i class="fa-solid fa-circle-check"></i> Complaint Lodged</h3>
+                        <p style="color: var(--text-secondary);">Thank you. Transparency portal updated. Admins have been notified.</p>
+                        <a href="/public/portal.html" class="btn btn-outline mt-4">Back to Map</a>
+                    `;
+                    succAlert.classList.remove('hidden');
+                } else {
+                    document.getElementById('error-alert').textContent = res.error || 'Failed to submit complaint';
+                    document.getElementById('error-alert').classList.remove('hidden');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                document.getElementById('error-alert').textContent = 'Server error';
+                document.getElementById('error-alert').classList.remove('hidden');
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

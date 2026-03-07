@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Tenders - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Contractor</span>
+            </a>
+            <div class="nav-links">
+                <a href="/contractor/dashboard.html">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            <a href="/contractor/dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="/contractor/tenders.html" class="active"><i class="fa-solid fa-magnifying-glass"></i> Find
+                Tenders</a>
+            <a href="/contractor/my-bids.html"><i class="fa-solid fa-file-signature"></i> My Bids</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2>Open Tenders</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="tenders-list">
+                <!-- Populated via JS -->
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        checkAuth('contractor');
+
+        async function loadTenders() {
+            try {
+                const res = await api.getTenders();
+                if (res.success) {
+                    const list = document.getElementById('tenders-list');
+                    list.innerHTML = '';
+
+                    const openTenders = res.data.filter(t => t.status === 'open');
+
+                    if (openTenders.length === 0) {
+                        list.innerHTML = '<p class="text-muted">No open tenders available right now.</p>';
+                        return;
+                    }
+
+                    openTenders.forEach(tender => {
+                        const deadline = new Date(tender.deadline).toLocaleDateString();
+                        list.innerHTML += `
+                            <div class="card flex-col justify-between" style="background: var(--primary-bg); border-color: var(--border);">
+                                <div>
+                                    <h3 class="mb-2" style="color: var(--text-primary); font-size: 1.125rem;">${tender.title}</h3>
+                                    <div class="mb-4">
+                                        <span class="badge badge-low">Open</span>
+                                        <span class="badge" style="background:rgba(255,255,255,0.05); color:var(--text-secondary); border:1px solid var(--border); margin-left:8px;"><i class="fa-solid fa-location-dot"></i> ${tender.location.name}</span>
+                                    </div>
+                                    <p class="text-sm text-muted mb-4 line-clamp-3">${tender.description}</p>
+                                    <div class="flex flex-col gap-2 text-sm mb-6 p-4 rounded" style="background: var(--secondary-bg); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                        <div class="flex justify-between items-center" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.25rem;">
+                                            <span class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Estimated Budget</span>
+                                            <strong style="color: var(--text-primary);">₹${tender.budget.toLocaleString()}</strong>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Deadline</span>
+                                            <strong class="text-alert-red">${deadline}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="/contractor/bid.html?id=${tender._id}" class="btn btn-primary" style="width: 100%;">Prepare Bid & Documents <i class="fa-solid fa-arrow-right ml-2" style="font-size: 0.8rem; margin-left: 0.5rem;"></i></a>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTenders);
+    </script>
+</body>
+
+</html>

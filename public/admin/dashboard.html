@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Admin</span>
+            </a>
+            <div class="nav-links">
+                <span id="user-name" class="text-muted">Loading...</span>
+                <button id="logout-btn" class="btn btn-outline" style="padding: 0.4rem 1rem;">Log Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            <a href="/admin/dashboard.html" class="active"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="/admin/tenders.html"><i class="fa-solid fa-file-contract"></i> Manage Tenders</a>
+            <a href="/admin/risk-analysis.html"><i class="fa-solid fa-triangle-exclamation"></i> Risk Analysis</a>
+            <a href="/admin/network-risk.html"><i class="fa-solid fa-project-diagram"></i> Network Risk Analysis</a>
+            <a href="/admin/citizen-reports.html"><i class="fa-solid fa-map-location-dot"></i> Citizen Reports</a>
+            <div class="sidebar-title mt-4">Public</div>
+            <a href="/public/complaints.html"><i class="fa-solid fa-bullhorn"></i> Public Complaints</a>
+            <a href="/public/portal.html" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Live
+                Portal</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2>System Overview</h2>
+                <a href="/admin/tenders.html" class="btn btn-primary"><i class="fa-solid fa-plus mr-2"></i> Create
+                    Tender</a>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid md:grid-cols-4 gap-6 mb-8">
+                <div class="card stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-folder-open"></i></div>
+                    <div class="stat-title">Total Tenders</div>
+                    <div class="stat-value" id="stat-tenders">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-gavel"></i></div>
+                    <div class="stat-title">Active Bids</div>
+                    <div class="stat-value" id="stat-bids">0</div>
+                </div>
+                <div class="card stat-card" style="border-left: 4px solid var(--alert-red);">
+                    <div class="stat-icon" style="color: var(--alert-red); background: rgba(239, 68, 68, 0.1);"><i
+                            class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="stat-title">High-Risk Alerts</div>
+                    <div class="stat-value" id="stat-high-risk">0</div>
+                </div>
+                <div class="card stat-card" style="border-left: 4px solid var(--alert-amber);">
+                    <div class="stat-icon" style="color: var(--alert-amber); background: rgba(245, 158, 11, 0.1);"><i
+                            class="fa-solid fa-users-slash"></i></div>
+                    <div class="stat-title">Cartel Flags</div>
+                    <div class="stat-value" id="stat-cartel">0</div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <!-- Chart -->
+                <div class="card">
+                    <h3 class="mb-4">Budget Utilization</h3>
+                    <canvas id="budgetChart" height="200"></canvas>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <h3 class="mb-4">Recent Bids (AI Monitored)</h3>
+                    <div id="recent-bids-list" class="flex-col gap-4">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        const user = checkAuth('admin');
+        if (user) {
+            document.getElementById('user-name').textContent = user.name;
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        });
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const res = await api.getStats();
+                if (res.success) {
+                    const data = res.data;
+                    document.getElementById('stat-tenders').textContent = data.totalTenders;
+                    document.getElementById('stat-bids').textContent = data.totalBids;
+                    document.getElementById('stat-high-risk').textContent = data.highRiskBids;
+                    document.getElementById('stat-cartel').textContent = data.cartelBids;
+
+                    // Chart
+                    const ctx = document.getElementById('budgetChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Utilized Budget', 'Available Budget'],
+                            datasets: [{
+                                data: [data.utilizedBudget, data.totalBudget - data.utilizedBudget],
+                                backgroundColor: ['#3b82f6', '#e2e8f0'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            cutout: '75%',
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { color: '#475569' }
+                                }
+                            }
+                        }
+                    });
+
+                    // Recent Bids
+                    const bidsList = document.getElementById('recent-bids-list');
+                    bidsList.innerHTML = '';
+                    if (data.recentBids.length === 0) {
+                        bidsList.innerHTML = '<p class="text-muted">No recent bids.</p>';
+                    } else {
+                        data.recentBids.forEach(bid => {
+                            let riskBadge = '';
+                            if (bid.riskLevel === 'High') riskBadge = '<span class="badge badge-high">High Risk</span>';
+                            else if (bid.riskLevel === 'Medium') riskBadge = '<span class="badge badge-medium">Medium Risk</span>';
+                            else riskBadge = '<span class="badge badge-low">Low Risk</span>';
+
+                            bidsList.innerHTML += `
+                                <div class="flex justify-between items-center p-3" style="background: var(--primary-bg); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                    <div>
+                                        <div style="font-weight: 500; font-size: 0.875rem;">${bid.contractor ? bid.contractor.name : 'Unknown Contractor'}</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">₹${bid.quotedPrice.toLocaleString()} for ${bid.tender ? bid.tender.title.substring(0, 20) + '...' : ''}</div>
+                                    </div>
+                                    ${riskBadge}
+                                </div>
+                            `;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadStats);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Tenders - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Admin</span>
+            </a>
+            <div class="nav-links">
+                <a href="/admin/dashboard.html">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            <a href="/admin/dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="/admin/tenders.html" class="active"><i class="fa-solid fa-file-contract"></i> Manage Tenders</a>
+            <a href="/admin/risk-analysis.html"><i class="fa-solid fa-triangle-exclamation"></i> Risk Analysis</a>
+            <div class="sidebar-title mt-4">Public</div>
+            <a href="/public/complaints.html"><i class="fa-solid fa-bullhorn"></i> Public Complaints</a>
+            <a href="/public/portal.html" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Live Portal</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2>Manage Tenders</h2>
+                <button id="add-tender-btn" class="btn btn-primary"><i class="fa-solid fa-plus mr-2"></i> Create New
+                    Tender</button>
+            </div>
+
+            <!-- Create Tender Form (Hidden initially) -->
+            <div id="create-tender-form" class="card mb-8 hidden">
+                <h3 class="mb-4">Create New Tender</h3>
+                <form id="new-tender">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label class="form-label">Tender Title</label>
+                            <input type="text" id="title" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Budget (₹)</label>
+                            <input type="number" id="budget" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location</label>
+                            <input type="text" id="location" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Deadline</label>
+                            <input type="date" id="deadline" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea id="description" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="flex gap-4 mt-4">
+                        <button type="submit" class="btn btn-primary">Publish Tender</button>
+                        <button type="button" id="cancel-create" class="btn btn-outline">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-container">
+                <table id="tenders-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Location</th>
+                            <th>Budget</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tenders-list">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        checkAuth('admin');
+
+        document.getElementById('add-tender-btn').addEventListener('click', () => {
+            document.getElementById('create-tender-form').classList.remove('hidden');
+        });
+        document.getElementById('cancel-create').addEventListener('click', () => {
+            document.getElementById('create-tender-form').classList.add('hidden');
+        });
+
+        // Submit new tender
+        document.getElementById('new-tender').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                title: document.getElementById('title').value,
+                budget: document.getElementById('budget').value,
+                location: { name: document.getElementById('location').value },
+                deadline: document.getElementById('deadline').value,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                const res = await api.createTender(data);
+                if (res.success) {
+                    alert('Tender created successfully');
+                    document.getElementById('create-tender-form').classList.add('hidden');
+                    document.getElementById('new-tender').reset();
+                    loadTenders();
+                } else {
+                    alert(res.error || 'Failed to create tender');
+                }
+            } catch (err) { alert('Error creating tender'); }
+        });
+
+        async function loadTenders() {
+            try {
+                const res = await api.getTenders();
+                if (res.success) {
+                    const tbody = document.getElementById('tenders-list');
+                    tbody.innerHTML = '';
+                    res.data.forEach(tender => {
+                        const deadline = new Date(tender.deadline).toLocaleDateString();
+                        const statusBadge = tender.status === 'open'
+                            ? '<span class="badge badge-low">Open</span>'
+                            : (tender.status === 'closed' ? '<span class="badge badge-medium">Closed</span>' : '<span class="badge badge-high">Awarded</span>');
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${tender.title}</td>
+                                <td>${tender.location.name}</td>
+                                <td>₹${tender.budget.toLocaleString()}</td>
+                                <td>${deadline}</td>
+                                <td>${statusBadge}</td>
+                                <td>
+                                    <a href="/admin/risk-analysis.html?tenderId=${tender._id}" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">View Bids</a>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTenders);
+    </script>
+</body>
+
+</html>

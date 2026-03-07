@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Dashboard & Transparency Portal - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Leaflet CSS for Map Integration -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+</head>
+
+<body style="background-color: var(--primary-bg);">
+    <nav class="navbar" style="background-color: rgba(10, 10, 10, 0.8);">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo" style="color: var(--text-primary);">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Public Dashboard</span>
+            </a>
+            <div class="nav-links">
+                <a href="/public/complaints.html"
+                    class="btn btn-outline" style="padding: 0.4rem 1rem;">File Complaint</a>
+                <a href="/" style="color: var(--text-secondary);">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-12">
+        <h1 class="mb-2 text-center">Public Dashboard & Infrastructure Map</h1>
+        <p class="text-center text-muted mb-8">Full transparency on allocated budgets, contractors, and project
+            progress.</p>
+
+        <!-- Map Container -->
+        <div class="card mb-8 p-0" style="overflow: hidden; height: 400px; padding: 0; background: var(--secondary-bg); border-color: var(--border);">
+            <div id="map" style="width: 100%; height: 100%;"></div>
+        </div>
+
+        <h2 class="mb-4">Live Tracked Projects</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-list">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/js/api.js"></script>
+    <script>
+        // Initialize Map (Centered on India roughly)
+        const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        async function loadPublicData() {
+            try {
+                const res = await api.getTenders();
+                if (res.success) {
+                    const list = document.getElementById('projects-list');
+                    list.innerHTML = '';
+
+                    res.data.forEach((tender, idx) => {
+                        // Plot on map if coordinates exist
+                        if (tender.location && tender.location.lat && tender.location.lng) {
+                            const marker = L.marker([tender.location.lat, tender.location.lng]).addTo(map);
+                            marker.bindPopup(`
+                                <b>${tender.title}</b><br>
+                                Budget: ₹${tender.budget.toLocaleString()}<br>
+                                Status: ${tender.status.toUpperCase()}
+                            `);
+
+                            // Auto center on first item for demo
+                            if (idx === 0) {
+                                map.setView([tender.location.lat, tender.location.lng], 6);
+                            }
+                        }
+
+                        // Add to list
+                        const statusColor = tender.status === 'awarded' ? 'var(--alert-green)' : (tender.status === 'open' ? 'var(--accent)' : 'var(--text-secondary)');
+                        const utilPercent = tender.budget > 0 ? Math.round((tender.fundUtilization / tender.budget) * 100) : 0;
+
+                        list.innerHTML += `
+                            <div class="card flex-col" style="background: var(--primary-bg); border-color: var(--border);">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 style="color: var(--text-primary); font-size: 1.125rem;">${tender.title}</h4>
+                                </div>
+                                <div class="mb-3 text-sm" style="color: ${statusColor}; font-weight: 600; text-transform: uppercase;">
+                                    ${tender.status}
+                                </div>
+                                <div class="mb-4 text-sm" style="background: var(--secondary-bg); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-muted">Total Budget:</span>
+                                        <strong>₹${tender.budget.toLocaleString()}</strong>
+                                    </div>
+                                    <div class="flex justify-between mb-1 mt-2">
+                                        <span class="text-muted">Fund Utilized:</span>
+                                        <span>₹${tender.fundUtilization.toLocaleString()} (${utilPercent}%)</span>
+                                    </div>
+                                    <div class="w-full rounded-full h-2 mt-2" style="background-color: var(--primary-bg); border: 1px solid var(--border);">
+                                        <div class="h-2 rounded-full" style="background-color: var(--accent); width: ${utilPercent}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-auto">
+                                    <a href="/public/complaints.html?tenderId=${tender._id}" class="btn btn-outline" style="width: 100%; border-color: var(--border); color: var(--text-primary);">
+                                        <i class="fa-solid fa-camera mr-2" style="color: var(--text-secondary);"></i> Report Issue / Photo
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPublicData);
+    </script>
+</body>
+
+</html>

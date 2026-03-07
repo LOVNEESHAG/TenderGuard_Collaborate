@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="auth-container">
+
+    <div class="auth-card">
+        <div class="text-center mb-6 logo justify-center">
+            <a href="/"><i class="fa-solid fa-shield-halved"></i> TenderGuard</a>
+        </div>
+        <h2 class="text-center mb-6">Welcome Back</h2>
+
+        <div id="error-alert" class="alert alert-error hidden"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-control" required value="admin@test.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="password" class="form-control" required value="password">
+            </div>
+
+            <p class="text-muted mb-4" style="font-size: 0.8rem;">
+                Try Admin: admin@test.com | Contractor: c1@test.com | Pwd: password
+            </p>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Log In</button>
+        </form>
+
+        <p class="text-center mt-6 text-muted">
+            Don't have an account? <a href="/register.html">Sign Up</a>
+        </p>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const alertBox = document.getElementById('error-alert');
+
+            try {
+                const res = await api.login(email, password);
+                if (res.success) {
+                    localStorage.setItem('token', res.token);
+                    localStorage.setItem('user', JSON.stringify(res.user));
+
+                    if (res.user.role === 'admin') {
+                        window.location.href = '/admin/dashboard.html';
+                    } else if (res.user.role === 'contractor') {
+                        window.location.href = '/contractor/dashboard.html';
+                    } else {
+                        window.location.href = '/public/portal.html';
+                    }
+                } else {
+                    alertBox.textContent = res.error || 'Login failed';
+                    alertBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                alertBox.textContent = 'Server error';
+                alertBox.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

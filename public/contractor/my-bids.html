@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bids - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Contractor</span>
+            </a>
+            <div class="nav-links">
+                <a href="/contractor/dashboard.html">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            <a href="/contractor/dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="/contractor/tenders.html"><i class="fa-solid fa-magnifying-glass"></i> Find Tenders</a>
+            <a href="/contractor/my-bids.html" class="active"><i class="fa-solid fa-file-signature"></i> My Bids</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2>My Submitted Bids</h2>
+            </div>
+
+            <div class="alert mb-6" style="background-color: rgba(59, 130, 246, 0.1); color: #60a5fa; border-left: 4px solid #3b82f6;">
+                <i class="fa-solid fa-circle-info mr-2"></i><strong>AI Score Visibility:</strong> You can see your own
+                system-generated Risk Score and estimated Rank based on current competitors.
+            </div>
+
+            <div id="bids-list" class="grid grid-cols-1 gap-6">
+                <!-- Populated via JS -->
+            </div>
+
+            <!-- Edit Bid Modal -->
+            <div id="edit-bid-modal" class="card hidden"
+                style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                <div class="flex justify-between items-center mb-4">
+                    <h3>Edit Bid</h3>
+                    <button id="close-edit-modal" style="background:none; border:none; cursor:pointer;"><i
+                            class="fa-solid fa-times"></i></button>
+                </div>
+                <form id="edit-bid-form">
+                    <input type="hidden" id="edit-bid-id">
+                    <div class="form-group mb-4">
+                        <label class="form-label">Quoted Price (₹)</label>
+                        <input type="number" id="edit-price" class="form-control" required>
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="form-label">Timeline (Days)</label>
+                        <input type="number" id="edit-timeline" class="form-control" required>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button type="button" id="cancel-edit-btn" class="btn btn-outline">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+            <!-- Overlay -->
+            <div id="modal-overlay" class="hidden"
+                style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999;">
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        const user = checkAuth('contractor');
+
+        async function loadMyBids() {
+            try {
+                // To get "my bids", we need to hit all tenders we bid on. 
+                // Since our API gets bids per tender, we can fetch all tenders, then for each tender fetch if we have a bid.
+                // In a real app we'd have a specific /api/bids/me endpoint. Let's mock fetching all tenders and finding our bids.
+
+                const tendersRes = await api.getTenders();
+                if (!tendersRes.success) return;
+
+                const list = document.getElementById('bids-list');
+                list.innerHTML = '';
+                let hasBids = false;
+
+                for (const tender of tendersRes.data) {
+                    const bidsRes = await api.getBids(tender._id);
+                    if (bidsRes.success && bidsRes.data.length > 0) {
+                        // Remember /api/tenders/:id/bids returns only the current contractor's bids for 'contractor' role!
+                        hasBids = true;
+                        const bid = bidsRes.data[0]; // Assuming 1 bid per tender
+
+                        let riskBadge = '';
+                        if (bid.riskLevel === 'High') riskBadge = '<span class="badge badge-high"><i class="fa-solid fa-triangle-exclamation"></i> High Risk Flagged</span>';
+                        else if (bid.riskLevel === 'Medium') riskBadge = '<span class="badge badge-medium">Medium Risk</span>';
+                        else riskBadge = '<span class="badge badge-low"><i class="fa-solid fa-shield-check"></i> Low Risk / Verified</span>';
+
+                        let warnings = '';
+                        if (bid.flags && bid.flags.length > 0) {
+                            warnings = '<div class="mt-4 p-3 rounded" style="background: rgba(239, 68, 68, 0.1); color: var(--alert-red); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md);"><div class="font-medium mb-1"><i class="fa-solid fa-circle-exclamation"></i> AI Analysis Flags:</div><ul style="padding-left: 1.5rem; font-size: 0.875rem;">';
+                            bid.flags.forEach(f => warnings += `<li>${f}</li>`);
+                            warnings += '</ul></div>';
+                        }
+
+                        list.innerHTML += `
+                            <div class="card" style="background: var(--primary-bg); border-color: var(--border);">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="mb-1" style="color: var(--text-primary);">${tender.title}</h3>
+                                        <div class="text-sm text-muted">Submitted on: ${new Date(bid.createdAt).toLocaleDateString()}</div>
+                                    </div>
+                                    ${riskBadge}
+                                </div>
+                                
+                                <div class="grid md:grid-cols-4 gap-4 py-3" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+                                    <div>
+                                        <div class="text-sm text-muted">My Quote</div>
+                                        <div class="font-medium">₹${bid.quotedPrice.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-muted">Timeline</div>
+                                        <div class="font-medium">${bid.timelineDays} Days</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-muted">Tender Budget</div>
+                                        <div class="font-medium">₹${tender.budget.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-muted">AI Score (out of 100)</div>
+                                        <div class="font-medium" style="color: var(--text-primary);">${bid.finalScore} / 100</div>
+                                    </div>
+                                </div>
+
+                                ${warnings}
+                                
+                                <div class="mt-4 flex gap-3 justify-end pt-3" style="border-top: 1px solid var(--border);">
+                                    <button onclick="openEditModal('${bid._id}', ${bid.quotedPrice}, ${bid.timelineDays})" class="btn btn-outline" style="padding: 0.3rem 1rem; font-size: 0.875rem;"><i class="fa-solid fa-pen mr-2"></i>Edit</button>
+                                    <button type="button" onclick="deleteBid('${bid._id}', event)" class="btn btn-outline" style="padding: 0.3rem 1rem; font-size: 0.875rem; border-color: var(--alert-red); color: var(--alert-red);"><i class="fa-solid fa-trash mr-2"></i>Withdraw</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                if (!hasBids) {
+                    list.innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fa-solid fa-file-signature fa-3x text-muted mb-4" style="opacity: 0.5;"></i>
+                            <h3 class="text-muted">No bids submitted yet</h3>
+                            <p class="text-muted mb-4">Browse open tenders and submit your first bid.</p>
+                            <a href="/contractor/tenders.html" class="btn btn-primary">Find Tenders</a>
+                        </div>
+                    `;
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // --- Edit Bid Logic ---
+        const editModal = document.getElementById('edit-bid-modal');
+        const overlay = document.getElementById('modal-overlay');
+        const closeBtn = document.getElementById('close-edit-modal');
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        const editForm = document.getElementById('edit-bid-form');
+
+        window.openEditModal = (id, currentPrice, currentTimeline) => {
+            document.getElementById('edit-bid-id').value = id;
+            document.getElementById('edit-price').value = currentPrice;
+            document.getElementById('edit-timeline').value = currentTimeline;
+            editModal.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+        };
+
+        const closeModal = () => {
+            editModal.classList.add('hidden');
+            overlay.classList.add('hidden');
+            editForm.reset();
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', closeModal);
+
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-bid-id').value;
+            const data = {
+                quotedPrice: document.getElementById('edit-price').value,
+                timelineDays: document.getElementById('edit-timeline').value
+            };
+
+            try {
+                const res = await fetch(`/api/bids/${id}`, {
+                    method: 'PUT',
+                    headers: api.getAuthHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Bid updated successfully! AI Risk Scores have been recalculated.');
+                    closeModal();
+                    loadMyBids(); // Refresh lists
+                } else {
+                    alert(result.error || 'Failed to update bid');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error updating bid');
+            }
+        });
+
+        // --- Delete Bid Logic ---
+        window.deleteBid = async (id, event) => {
+            if (event) event.preventDefault();
+            if (confirm('Are you sure you want to withdraw this bid? This action cannot be undone.')) {
+                try {
+                    const res = await fetch(`/api/bids/${id}`, {
+                        method: 'DELETE',
+                        headers: api.getAuthHeaders() // Using the centralized api.js method for headers
+                    });
+                    const result = await res.json();
+
+                    if (result.success) {
+                        alert('Bid withdrawn successfully.');
+                        loadMyBids(); // Refresh lists
+                    } else {
+                        alert(result.error || 'Failed to withdraw bid');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error withdrawing bid');
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', loadMyBids);
+    </script>
+</body>
+
+</html>

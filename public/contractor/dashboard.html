@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Dashboard - TenderGuard AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container" style="max-width: 100%; padding: 0 2rem;">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-shield-halved"></i> TenderGuard <span
+                    style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-left: 0.25rem;">Contractor</span>
+            </a>
+            <div class="nav-links">
+                <span id="user-name" class="text-muted">Loading...</span>
+                <button id="logout-btn" class="btn btn-outline" style="padding: 0.4rem 1rem;">Log Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            <a href="/contractor/dashboard.html" class="active"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="/contractor/tenders.html"><i class="fa-solid fa-magnifying-glass"></i> Find Tenders</a>
+            <a href="/contractor/my-bids.html"><i class="fa-solid fa-file-signature"></i> My Bids</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2>Welcome, <span id="welcome-name"></span></h2>
+                <a href="/contractor/tenders.html" class="btn btn-primary"><i
+                        class="fa-solid fa-magnifying-glass mr-2"></i> Find Open Tenders</a>
+            </div>
+
+            <!-- Profile Summary -->
+            <div class="card mb-8">
+                <h3 class="mb-4">Contractor Profile & Trust Score</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div>
+                        <div class="text-muted mb-1">Experience Level</div>
+                        <div class="font-medium" id="prof-exp">Loading...</div>
+                    </div>
+                    <div>
+                        <div class="text-muted mb-1">Past Performance</div>
+                        <div class="font-medium" id="prof-perf">Loading...</div>
+                    </div>
+                    <div>
+                        <div class="text-muted mb-1">Delay History</div>
+                        <div class="font-medium" id="prof-delay">Loading...</div>
+                    </div>
+                </div>
+                <p class="text-sm text-muted mt-4"><i class="fa-solid fa-circle-info"></i> Your profile metrics are
+                    factored into the final AI ranking of your bids.</p>
+            </div>
+
+            <!-- Active Tenders (Simplified for Dashboard) -->
+            <h3 class="mb-4">Tenders Recently Added</h3>
+            <div class="grid md:grid-cols-2 gap-6" id="recent-tenders">
+                <!-- Populated via JS -->
+                <p class="text-muted">Loading tenders...</p>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        const user = checkAuth('contractor');
+        if (user) {
+            document.getElementById('user-name').textContent = user.name;
+            document.getElementById('welcome-name').textContent = user.name.split(' ')[0];
+
+            // In a real app we'd fetch actual profile data from /api/auth/me
+            // For now, load using the initial mock datastructure or fetch me
+            fetch('/api/auth/me', { headers: api.getAuthHeaders() })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        document.getElementById('prof-exp').textContent = res.data.experience + ' Years';
+                        document.getElementById('prof-perf').textContent = res.data.pastPerformance + ' / 100';
+                        document.getElementById('prof-delay').textContent = res.data.delayHistory + ' Incidents';
+                    }
+                });
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        });
+
+        // Load Tenders
+        async function loadTenders() {
+            try {
+                const res = await api.getTenders();
+                if (res.success) {
+                    const list = document.getElementById('recent-tenders');
+                    list.innerHTML = '';
+
+                    const openTenders = res.data.filter(t => t.status === 'open').slice(0, 4);
+
+                    if (openTenders.length === 0) {
+                        list.innerHTML = '<p class="text-muted">No open tenders available right now.</p>';
+                        return;
+                    }
+
+                    openTenders.forEach(tender => {
+                        const deadline = new Date(tender.deadline).toLocaleDateString();
+                        list.innerHTML += `
+                            <div class="card flex-col justify-between" style="background: var(--primary-bg); border-color: var(--border);">
+                                <div>
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 style="color: var(--text-primary); font-size: 1.125rem;">${tender.title}</h4>
+                                        <span class="badge badge-low">Open</span>
+                                    </div>
+                                    <p class="text-sm text-muted mb-4 line-clamp-2">${tender.description}</p>
+                                    <div class="flex justify-between text-sm mb-6" style="padding-top: 1rem; border-top: 1px solid var(--border);">
+                                        <div><div class="text-muted" style="font-size: 0.75rem;">Budget</div><div style="font-weight: 600;">₹${tender.budget.toLocaleString()}</div></div>
+                                        <div style="text-align: right;"><div class="text-muted" style="font-size: 0.75rem;">Deadline</div><div style="font-weight: 600;">${deadline}</div></div>
+                                    </div>
+                                </div>
+                                <a href="/contractor/bid.html?id=${tender._id}" class="btn btn-outline" style="width: 100%;">Submit Bid</a>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTenders);
+    </script>
+</body>
+
+</html>
