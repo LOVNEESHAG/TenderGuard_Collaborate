@@ -7,6 +7,59 @@
         return;
     }
 
+    // Function to play text as voice using our backend ElevenLabs integration
+    async function playNotificationVoice(text, containerElement) {
+        try {
+            const response = await fetch('/api/tts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ text })
+            });
+
+            if (response.ok) {
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                if (containerElement) {
+                    const btn = document.createElement('button');
+                    btn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Play Voice Alert';
+                    btn.style.width = '100%';
+                    btn.style.marginTop = '0.5rem';
+                    btn.style.padding = '0.5rem';
+                    btn.style.background = 'rgba(59, 130, 246, 0.2)';
+                    btn.style.border = '1px solid rgba(59, 130, 246, 0.4)';
+                    btn.style.color = '#60a5fa';
+                    btn.style.borderRadius = '8px';
+                    btn.style.cursor = 'pointer';
+                    btn.style.fontSize = '0.875rem';
+                    btn.style.fontWeight = '500';
+                    btn.style.transition = 'all 0.2s';
+                    
+                    btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(59, 130, 246, 0.3)');
+                    btn.addEventListener('mouseleave', () => btn.style.background = 'rgba(59, 130, 246, 0.2)');
+                    
+                    btn.addEventListener('click', () => {
+                        audio.currentTime = 0;
+                        audio.play();
+                    });
+                    containerElement.appendChild(btn);
+                }
+                
+                // Try to play (browsers usually require user interaction first)
+                audio.play().catch(e => {
+                    console.warn("Audio autoplay prevented by browser. User must click 'Play Voice Alert' button.", e);
+                });
+            } else {
+                console.error("Failed to generate voice notification");
+            }
+        } catch (error) {
+            console.error("Error playing voice notification:", error);
+        }
+    }
+
     // A simple, modern glassmorphism toast UI function
     function showGeoToast(tender) {
         // Check if we already notified for this tender in this session
@@ -76,6 +129,9 @@
 
         // Mark as notified so it doesn't pop up continuously while walking
         sessionStorage.setItem(notifiedKey, 'true');
+
+        // Play voice notification via ElevenLabs
+        playNotificationVoice(`Alert! You are currently within ${tender.distance} meters of the public infrastructure project titled ${tender.title}. Please review the project details or report any issues.`, toast);
     }
 
     // A simple toast for when no infrastructure is nearby
@@ -148,6 +204,9 @@
         }, 5000);
 
         sessionStorage.setItem(notifiedKey, 'true');
+        
+        // Play voice notification
+        playNotificationVoice("Location checked. We couldn't find any active infrastructure projects within 500 meters of your current location.", toast);
     }
 
     async function checkNearbyProjects(position) {

@@ -28,6 +28,7 @@ app.use('/api/tenders', require('./routes/tenders'));
 app.use('/api/bids', require('./routes/bids'));
 app.use('/api/complaints', require('./routes/complaints'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/tts', require('./routes/tts'));
 
 // Error Handling Middleware to ensure API always returns JSON
 app.use((err, req, res, next) => {
